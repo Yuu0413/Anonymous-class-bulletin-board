@@ -1,58 +1,51 @@
 <?php
 /* class_register.php */
 
-// 1. セッション（一時保存機能）を開始
+// 1. セッション開始
 session_start();
 
-// 2. DB接続を持ってくる
+// 2. DB接続
 require 'class_db_connect.php';
 
-// 3. 【仮実装】ログイン機能がまだないので、無理やりログイン状態を作る
-// 本番ではこのif文を消せば、ログインしていない人は弾かれるようになります
+// 3. 【仮実装】ログインモック
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 999; // 仮のIDを入れておく
+    $_SESSION['user_id'] = 999; 
 }
 
-// ログインチェック: IDを持っていない人はログイン画面へ追放
+// ログインチェック
 if (!isset($_SESSION['user_id'])) {
-    // authディレクトリのログイン画面へ飛ばす（まだ無いならエラーになるが正しい挙動）
     header("Location: ../auth/login.php");
     exit;
 }
 
-// メッセージ表示用変数
+// 変数初期化
 $message = "";
+$alertClass = ""; // Bootstrapのアラート色指定用
 
-// 4. 「登録ボタン」が押された時の処理
+// 4. POST処理
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // フォームから送られてきたデータを受け取る
-    $c_name = $_POST['course_name']; // 授業名
-    $p_name = $_POST['prof_name'];   // 教授名
+    $c_name = $_POST['course_name'];
+    $p_name = $_POST['prof_name'];
 
-    // 空っぽじゃないかチェック
     if (!empty($c_name) && !empty($p_name)) {
         try {
-            // SQLの準備（プレースホルダ :name を使う）
-            // いきなり変数を埋め込むとハッキングされるので :name という仮置き場を使う
             $sql = "INSERT INTO courses (course_name, professor_name) VALUES (:c_name, :p_name)";
-            
-            // 予約を入れる ($pdoは db_connect.php で作った電話機)
             $stmt = $pdo->prepare($sql);
-            
-            // 仮置き場に本当の値をセットする（型を指定して安全にする）
             $stmt->bindValue(':c_name', $c_name, PDO::PARAM_STR);
             $stmt->bindValue(':p_name', $p_name, PDO::PARAM_STR);
-            
-            // 実行！
             $stmt->execute();
 
-            $message = "✅ 授業「" . htmlspecialchars($c_name) . "」を登録しました！";
+            $message = "授業「" . htmlspecialchars($c_name) . "」を登録しました！";
+            $alertClass = "alert-success"; // 緑色
+            
         } catch (PDOException $e) {
-            $message = "❌ エラー: " . $e->getMessage();
+            $message = "エラーが発生しました: " . $e->getMessage();
+            $alertClass = "alert-danger"; // 赤色
         }
     } else {
-        $message = "⚠️ 全ての項目を入力してください。";
+        $message = "全ての項目を入力してください。";
+        $alertClass = "alert-warning"; // 黄色
     }
 }
 ?>
@@ -61,53 +54,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>授業登録 | 匿名口コミアプリ</title>
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
-        .msg { padding: 10px; background: #f0f0f0; border-left: 5px solid #2196F3; margin-bottom: 20px; }
-        form { background: #fafafa; padding: 20px; border: 1px solid #ddd; }
-        input { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
-        button { background: #333; color: white; padding: 10px 20px; border: none; cursor: pointer; }
-    </style>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="class_register.css">
 </head>
 <body>
 
-    <h1>📚 授業登録ページ</h1>
-    
-    <?php if ($message): ?>
-        <div class="msg"><?php echo $message; ?></div>
-    <?php endif; ?>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
 
-    <form method="post" action="">
-        <label>授業名</label>
-        <input type="text" name="course_name" placeholder="例: プログラミング基礎" required>
-        
-        <label>教授名</label>
-        <input type="text" name="prof_name" placeholder="例: 佐藤 先生" required>
-        
-        <button type="submit">登録する</button>
-    </form>
+            <div class="text-center mt-5 mb-4">
+                <div class="header-icon">📚</div>
+                <h1 class="h3 fw-bold text-dark">授業の新規登録</h1>
+                <p class="text-muted">みんなのために授業情報を追加しましょう</p>
+            </div>
 
-    <hr>
+            <?php if ($message): ?>
+                <div class="alert <?php echo $alertClass; ?> alert-dismissible fade show shadow-sm" role="alert">
+                    <?php echo $message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
-    <h3>📋 現在DBに入っている授業（確認用）</h3>
-    <ul>
-    <?php
-    // DBからデータを全件取得して表示する
-    $sql_select = "SELECT * FROM courses ORDER BY course_id DESC";
-    $stmt = $pdo->query($sql_select);
-    
-    // 1行ずつ取り出して表示
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        // htmlspecialchars は文字化けや攻撃を防ぐためのバリア
-        echo "<li>";
-        echo "ID:" . htmlspecialchars($row['course_id']) . " ";
-        echo "<strong>" . htmlspecialchars($row['course_name']) . "</strong> ";
-        echo "(" . htmlspecialchars($row['professor_name']) . ")";
-        echo "</li>";
-    }
-    ?>
-    </ul>
+            <div class="card register-card p-4">
+                <div class="card-body">
+                    <form method="post" action="">
+                        <div class="mb-4">
+                            <label for="course_name" class="form-label fw-bold text-secondary">授業名</label>
+                            <input type="text" class="form-control" id="course_name" name="course_name" placeholder="例: 情報工学概論" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="prof_name" class="form-label fw-bold text-secondary">担当教授名</label>
+                            <input type="text" class="form-control" id="prof_name" name="prof_name" placeholder="例: 山田 太郎" required>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                登録する
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="../index.php" class="text-decoration-none text-secondary">
+                    &larr; トップページへ戻る
+                </a>
+            </div>
+
+
+            <div class="class-debug-area">
+                <h3>🔧 [Dev] DB登録済みデータ (最新10件)</h3>
+                <ul class="class-debug-list">
+                <?php
+                $sql_select = "SELECT * FROM courses ORDER BY course_id DESC LIMIT 10";
+                $stmt = $pdo->query($sql_select);
+                
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    echo "<li>";
+                    echo "ID:" . htmlspecialchars($row['course_id']) . " ";
+                    echo "<strong>" . htmlspecialchars($row['course_name']) . "</strong> ";
+                    echo '<span class="text-muted small">(' . htmlspecialchars($row['professor_name']) . ')</span>';
+                    echo "</li>";
+                }
+                ?>
+                </ul>
+            </div>
+            </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
