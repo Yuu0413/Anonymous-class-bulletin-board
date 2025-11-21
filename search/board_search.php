@@ -5,7 +5,6 @@ $db   = 'review_app_db';
 $user = 'db_user';       
 $pass = 'your_password'; 
 
-// DSN (Data Source Name)
 $dsn = "pgsql:host=$host;dbname=$db;user=$user;password=$pass";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -18,17 +17,32 @@ try {
     die("データベース接続エラー (PostgreSQL): " . $e->getMessage());
 }
 
-// 2. ページネーションとランキング基準設定
+// 2. 変数設定、キーワード、ページネーション、ランキング基準の取得
 
-$page = (int) ($_GET['page'] ?? 1); // 現在のページ番号
-$perPage = 15; // 1ページあたりの表示件数
+$keyword = $_GET['q'] ?? ''; 
+$page = (int) ($_GET['page'] ?? 1); 
+$perPage = 15; 
 $offset = ($page - 1) * $perPage;
-
-// ランキング基準の取得 (デフォルトは人気順)
 $rankBy = $_GET['rank_by'] ?? 'popular';
-$rankingTitle = ($rankBy === 'newest') ? '新着授業ランキング' : '人気授業ランキング';
 
-// 3. SQLクエリの構築と実行 (PostgreSQL 構文)
+// 検索キーワード用に '%%' で囲む (LIKE検索用)。小文字化して大文字小文字を区別しない検索を実現。
+$searchKeyword = '%' . mb_strtolower($keyword, 'UTF-8') . '%';
+
+// ページタイトル設定
+if (!empty($keyword)) {
+    $rankingTitle = '「' . htmlspecialchars($keyword) . '」の検索結果';
+    $searchMode = true;
+} else if ($rankBy === 'newest') {
+    $rankingTitle = '新着授業ランキング';
+    $searchMode = false;
+} else {
+    $rankingTitle = '人気授業ランキング';
+    $rankBy = 'popular'; 
+    $searchMode = false;
+}
+
+// 3. SQLクエリの構築
+
 // 基本クエリ（平均評価、口コミ数、最新投稿日時を算出）
 $baseQuery = "
     SELECT 
@@ -43,46 +57,64 @@ $baseQuery = "
         courses c
     LEFT JOIN 
         reviews r ON c.course_id = r.course_id
+";
+
+// WHERE句: キーワード検索機能 (検索モードの場合のみ適用)
+$whereClause = "WHERE 1=1";
+if ($searchMode) {
+    $whereClause .= " 
+        AND (LOWER(c.course_name) LIKE :keyword OR LOWER(c.professor_name) LIKE :keyword)
+    ";
+}
+
+// GROUP BY 句
+$groupByClause = "
     GROUP BY 
         c.course_id, c.course_name, c.professor_name
 ";
 
 // ORDER BY 句を設定
 $orderByClause = "ORDER BY ";
-if ($rankBy === 'newest') {
-    // 新着ランキング: 最新投稿日時が新しい順 (降順)
+if ($rankBy === 'newest' && !$searchMode) {
+    // 新着ランキング（非検索モード時）: 最新投稿日時が新しい順
     $orderByClause .= "last_reviewed_at DESC, review_count DESC";
 } else {
-    // 人気ランキング (デフォルト): 口コミ数が多い順、同数の場合は平均総合評価順
+    // 人気ランキング（デフォルト）または検索結果: 口コミ数が多い順、同数の場合は平均総合評価順
     $orderByClause .= "review_count DESC, avg_overall_rating DESC";
-    $rankBy = 'popular'; // 明示的に人気順とする
 }
 
 
-// 最終的なランキングクエリ 
-$rankingQuery = $baseQuery . $orderByClause . " 
-    LIMIT :limit OFFSET :offset
-";
+// 最終的なクエリ
+$finalQuery = $baseQuery . $whereClause . $groupByClause . $orderByClause . " LIMIT :limit OFFSET :offset";
 
 // 総件数カウントクエリ
 $countQuery = "
     SELECT COUNT(*) AS total
-    FROM (" . $baseQuery . ") AS T
+    FROM (" . $baseQuery . $whereClause . $groupByClause . ") AS T
 ";
 
-// --- クエリ実行：ランキング取得 ---
-$stmt = $pdo->prepare($rankingQuery);
+// 4. クエリの実行
+
+// --- 総件数の取得 ---
+$countStmt = $pdo->prepare($countQuery);
+if ($searchMode) {
+    $countStmt->bindParam(':keyword', $searchKeyword, PDO::PARAM_STR);
+}
+$countStmt->execute();
+$totalCount = $countStmt->fetch()['total'];
+
+$totalPages = ceil($totalCount / $perPage);
+
+// --- ランキング/検索結果の取得 ---
+$stmt = $pdo->prepare($finalQuery);
+if ($searchMode) {
+    $stmt->bindParam(':keyword', $searchKeyword, PDO::PARAM_STR);
+}
 $stmt->bindParam(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $results = $stmt->fetchAll();
 
-// --- クエリ実行：総件数取得 ---
-$countStmt = $pdo->query($countQuery);
-$totalCount = $countStmt->fetch()['total'];
-
-$totalPages = ceil($totalCount / $perPage);
-$currentPage = $page;
 
 /**
  * 評価を星アイコンに変換するヘルパー関数
@@ -110,7 +142,6 @@ function displayStarRating($rating) {
  */
 function formatDateTime($datetime) {
     if (!$datetime) return 'N/A';
-    // PostgreSQLのTIMESTAMPはPHPでそのままDateTimeとして扱える
     $dt = new DateTime($datetime);
     return $dt->format('Y/m/d H:i');
 }
@@ -122,7 +153,9 @@ function formatDateTime($datetime) {
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($rankingTitle) ?></title>
     <style>
+        /* -------------------------------------- */
         /* CSS スタイル */
+        /* -------------------------------------- */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
@@ -131,7 +164,7 @@ function formatDateTime($datetime) {
             color: #333;
         }
         .container { 
-            max-width: 1200px; /* 横幅を少し広げました */
+            max-width: 1200px; 
             margin: 20px auto; 
             background: white; 
             padding: 30px; 
@@ -144,6 +177,29 @@ function formatDateTime($datetime) {
             padding-bottom: 15px; 
             margin-bottom: 15px;
             font-size: 1.8em;
+        }
+        .search-form { 
+            display: flex; 
+            margin-bottom: 20px; 
+        }
+        .search-form input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 2px solid #007bff; /* 検索フォームを強調 */
+            border-radius: 6px 0 0 6px;
+            font-size: 1em;
+        }
+        .search-form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .search-form button:hover {
+            background-color: #0056b3;
         }
         .ranking-switch {
             text-align: right;
@@ -179,9 +235,6 @@ function formatDateTime($datetime) {
             text-align: left;
             font-weight: 600;
         }
-        .result-table th:first-child { border-top-left-radius: 8px; }
-        .result-table th:last-child { border-top-right-radius: 8px; }
-        
         .result-table td { 
             background-color: #f8f9fa;
             border: 1px solid #dee2e6; 
@@ -204,66 +257,34 @@ function formatDateTime($datetime) {
             display: inline-block;
             min-width: 50px;
             text-align: center;
+            background: #6c757d; 
         }
-        .ranking-badge { background: #6c757d; }
-        .top3-badge { 
-            background: #ffc107;
-            color: #333; 
-            border: 2px solid #ff9800;
-        }
-        .top2-badge { background: #adb5bd; }
-        .top1-badge { background: #007bff; }
-        
-        /* リンク */
-        a { 
-            color: #0056b3; 
-            text-decoration: none; 
-            font-weight: 500;
-        }
-        a:hover { 
-            text-decoration: underline; 
-        }
-
-        /* ページネーション */
-        .pagination { 
-            margin-top: 30px; 
-            text-align: center; 
-        }
-        .pagination a, .pagination span { 
-            padding: 10px 18px; 
-            margin: 0 5px; 
-            border: 1px solid #007bff; 
-            text-decoration: none; 
-            color: #007bff; 
-            border-radius: 6px; 
-            display: inline-block;
-        }
-        .pagination span.current { 
-            background: #007bff; 
-            color: white; 
-            border-color: #007bff;
-            font-weight: bold;
-        }
-        .pagination span {
-             color: #6c757d;
-             border-color: #adb5bd;
-        }
+        /* リンク, ページネーション (省略) */
     </style>
 </head>
 <body>
     <div class="container">
-        <h1><?= htmlspecialchars($rankingTitle) ?></h1>
+        <h1>📚 <?= htmlspecialchars($rankingTitle) ?></h1>
         
-        <div class="ranking-switch">
-            <a href="board.php?rank_by=popular" class="<?= $rankBy === 'popular' ? 'active' : '' ?>">
-                人気順ランキング
-            </a>
-            <a href="board.php?rank_by=newest" class="<?= $rankBy === 'newest' ? 'active' : '' ?>">
-                新着順ランキング
-            </a>
-        </div>
+        <form action="board_search.php" method="GET" class="search-form">
+            <input type="hidden" name="rank_by" value="<?= htmlspecialchars($rankBy) ?>">
+            <input type="text" name="q" placeholder="授業名または先生名を入力..." value="<?= htmlspecialchars($keyword) ?>">
+            <button type="submit">検索</button>
+        </form>
+
+        <?php if (!$searchMode): ?>
+            <div class="ranking-switch">
+                ランキング順序: 
+                <a href="board_search.php?rank_by=popular" class="<?= $rankBy === 'popular' ? 'active' : '' ?>">
+                    人気順
+                </a>
+                <a href="board_search.php?rank_by=newest" class="<?= $rankBy === 'newest' ? 'active' : '' ?>">
+                    新着順
+                </a>
+            </div>
+        <?php endif; ?>
         
-        <p>全授業を口コミの件数（または最新投稿日時）に基づいて表示しています。（全 **<?= number_format($totalCount) ?>** 件）</p>
+        <p>全 **<?= number_format($totalCount) ?>** 件中、<?= $offset + 1 ?>件目から<?= $offset + count($results) ?>件目を表示しています。</p>
 
         <table class="result-table">
             <thead>
@@ -274,19 +295,19 @@ function formatDateTime($datetime) {
                     <th style="width: 15%;">平均総合評価</th>
                     <th style="width: 10%;">平均楽単度</th>
                     <th style="width: 12%;">口コミ数</th>
-                    <th style="width: 15%;">最終投稿日時</th> </tr>
+                    <th style="width: 15%;">最終投稿日時</th>
+                </tr>
             </thead>
             <tbody>
                 <?php if (empty($results)): ?>
-                    <tr><td colspan="7" style="text-align: center;">現在、口コミのある授業は登録されていません。</td></tr>
+                    <tr><td colspan="7" style="text-align: center;">条件に一致する授業は見つかりませんでした。</td></tr>
                 <?php else: ?>
                     <?php foreach ($results as $index => $course): 
-                        // ランキング順位を計算
                         $rank = $offset + $index + 1;
                         $badgeClass = '';
-                        if ($rankBy === 'popular' && $rank == 1) $badgeClass = 'top1-badge top3-badge';
-                        else if ($rankBy === 'popular' && $rank == 2) $badgeClass = 'top2-badge top3-badge';
-                        else if ($rankBy === 'popular' && $rank == 3) $badgeClass = 'top3-badge';
+                        if (!$searchMode && $rankBy === 'popular' && $rank <= 3) {
+                            $badgeClass = ($rank == 1) ? 'top1-badge top3-badge' : (($rank == 2) ? 'top2-badge top3-badge' : 'top3-badge');
+                        }
                     ?>
                     <tr>
                         <td>
@@ -320,13 +341,13 @@ function formatDateTime($datetime) {
 
         <div class="pagination">
             <?php 
-            // ページネーションのクエリ文字列にランキング基準を保持
-            $queryString = http_build_query(array_filter(['rank_by' => $rankBy])); 
+            // ページネーションのクエリ文字列にキーワードとランキング基準を保持
+            $queryString = http_build_query(array_filter(['q' => $keyword, 'rank_by' => $rankBy])); 
 
             if ($totalPages > 1) {
                 // 前へ
                 if ($currentPage > 1) {
-                    echo '<a href="board.php?' . $queryString . '&page=' . ($currentPage - 1) . '">« 前へ</a>';
+                    echo '<a href="board_search.php?' . $queryString . '&page=' . ($currentPage - 1) . '">« 前へ</a>';
                 } else {
                     echo '<span>« 前へ</span>';
                 }
@@ -336,13 +357,13 @@ function formatDateTime($datetime) {
                     if ($i == $currentPage) {
                         echo '<span class="current">' . $i . '</span>';
                     } else {
-                        echo '<a href="board.php?' . $queryString . '&page=' . $i . '">' . $i . '</a>';
+                        echo '<a href="board_search.php?' . $queryString . '&page=' . $i . '">' . $i . '</a>';
                     }
                 }
 
                 // 次へ
                 if ($currentPage < $totalPages) {
-                    echo '<a href="board.php?' . $queryString . '&page=' . ($currentPage + 1) . '">次へ »</a>';
+                    echo '<a href="board_search.php?' . $queryString . '&page=' . ($currentPage + 1) . '">次へ »</a>';
                 } else {
                     echo '<span>次へ »</span>';
                 }
