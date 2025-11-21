@@ -1,0 +1,195 @@
+@charset "UTF-8";
+
+/* --- ベース設定 --- */
+body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* --- ヘッダー --- */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #2c3e50;
+}
+
+.page-header p {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+/* --- ソートメニュー (ボタンエリア) --- */
+.sort-menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.sort-label {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sort-btn {
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #555;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+.sort-btn:hover {
+    background-color: #eef2f6;
+}
+
+/* アクティブ(選択中)のボタンのデザイン */
+.sort-btn.active {
+    background-color: #007bff; /* 青色 */
+    color: #fff;
+    border-color: #007bff;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,123,255,0.3);
+}
+
+/* --- 授業カード --- */
+.course-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    transition: transform 0.2s;
+    position: relative; /* 順位バッジの位置基準 */
+}
+
+.course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* 順位バッジ */
+.rank-badge {
+    background-color: #95a5a6;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* 1位〜3位だけ色を変える */
+.rank-1 { background-color: #f1c40f; box-shadow: 0 2px 5px rgba(241, 196, 15, 0.4); } /* 金 */
+.rank-2 { background-color: #bdc3c7; } /* 銀 */
+.rank-3 { background-color: #e67e22; } /* 銅 */
+
+/* カードの中身 */
+.card-content {
+    flex-grow: 1;
+}
+
+.course-title {
+    margin: 0 0 5px;
+    font-size: 18px;
+}
+
+.course-title a {
+    text-decoration: none;
+    color: #2c3e50;
+}
+
+.course-title a:hover {
+    text-decoration: underline;
+}
+
+.professor {
+    margin: 0 0 15px;
+    font-size: 13px;
+    color: #7f8c8d;
+}
+
+/* 数値データの並び */
+.stats-container {
+    display: flex;
+    gap: 20px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: #aaa;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.stat-unit {
+    font-size: 11px;
+    font-weight: normal;
+}
+
+.star-color {
+    color: #f39c12; /* 星の色(オレンジ) */
+}
+
+/* データがない場合 */
+.no-data {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+}
+
+/* スマホ対応 */
+@media (max-width: 600px) {
+    .stats-container {
+        gap: 10px;
+        justify-content: space-between;
+    }
+    .course-card {
+        flex-direction: column;
+    }
+    .rank-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+}
