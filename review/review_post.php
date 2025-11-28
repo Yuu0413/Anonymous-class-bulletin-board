@@ -50,15 +50,15 @@ $alertClass = "";
 /* ▼ POST 処理（口コミ登録） */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // 入力値の取得
+    // 1. 入力値の取得（DBのカラム名に合わせる）
     $selected_course_id = filter_input(INPUT_POST, 'course_id', FILTER_VALIDATE_INT);
     $overall_rating     = filter_input(INPUT_POST, 'overall_rating', FILTER_VALIDATE_INT); // 総合評価
     $easiness_rating    = filter_input(INPUT_POST, 'easiness_rating', FILTER_VALIDATE_INT); // 楽単度
-    $review_text        = isset($_POST['review_text']) ? trim($_POST['review_text']) : ''; // コメント
+    $review_text        = isset($_POST['review_text']) ? trim($_POST['review_text']) : ''; // 本文
 
-    // バリデーション
+    // 2. バリデーション
     if (!$selected_course_id || !$overall_rating || !$easiness_rating) {
-        $message    = "授業と評価（総合・楽単）は必ず選択してください。";
+        $message    = "授業、総合評価、楽単度はすべて選択してください。";
         $alertClass = "alert-warning";
     } elseif ($overall_rating < 1 || $overall_rating > 5 || $easiness_rating < 1 || $easiness_rating > 5) {
         $message    = "評価は 1〜5 の範囲で選択してください。";
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $alertClass = "alert-warning";
     } else {
         try {
-            // DBへの保存
+            // 3. DBへの保存（SQLの項目名を修正済み）
             $sql = "INSERT INTO reviews (course_id, user_id, overall_rating, easiness_rating, review_text)
                     VALUES (:course_id, :user_id, :overall_rating, :easiness_rating, :review_text)";
             
@@ -81,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
 
             // 登録完了後は一覧画面（board_search.php）に戻る
+            // ※必要であれば class_detail.php などに変更してください
             header("Location: board_search.php?msg=posted"); 
             exit;
 
