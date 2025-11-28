@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// ★全部 test に変更（IDだけは数字の1にしておく！）
+// ダミーユーザー情報
 $dummy_user = [
     'id'       => 1,       // ユーザーID
     'name'     => 'test',  // ユーザー名
@@ -9,7 +9,6 @@ $dummy_user = [
     'password' => 'test'   // パスワード
 ];
 
-// 以下、ロジックは同じ
 if (isset($_POST['signin'])) {
     $email = $_POST['username'];
     $password = $_POST['password'];
@@ -25,7 +24,7 @@ if (isset($_POST['signin'])) {
         exit();
 
     } else {
-        $error = 'IDもパスワードも test で入れます'; // エラー文も親切に
+        $error = 'IDもパスワードも test で入れます'; // エラーメッセージ
         header("Location: auth_login.php?error=" . urlencode($error));
         exit();
     }
