@@ -5,14 +5,15 @@ $db   = 'review_app_db';
 $user = 'db_user';       
 $pass = 'your_password'; 
 
-$dsn = "pgsql:host=$host;dbname=$db;user=$user;password=$pass";
+$dsn = "pgsql:host=$host;dbname=$dbname";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
 ];
 
 try {
-    $pdo = new PDO($dsn, null, null, $options);
+    // 第2引数にユーザー、第3引数にパスワードを渡す
+    $pdo = new PDO($dsn, $user, $password, $options);
 } catch (\PDOException $e) {
     die("データベース接続エラー (PostgreSQL): " . $e->getMessage());
 }

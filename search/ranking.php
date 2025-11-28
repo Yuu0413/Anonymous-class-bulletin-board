@@ -11,7 +11,7 @@ $pass = 'your_password';        // ★Postgresのパスワード
 try {
     // PostgreSQL接続 (ご提示のSQLがPostgres形式のため)
     $dsn = "pgsql:host=$host;dbname=$dbname";
-    $pdo = new PDO($dsn, $user, $pass);
+    $pdo = new PDO($dsn, $user, $password);
     
     // エラー発生時に例外を投げる設定
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
