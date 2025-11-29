@@ -43,7 +43,7 @@
     <div class="signin">
         <h2>ログイン</h2>
 
-        <form action="" method="POST">
+        <form action="auth_session.php" method="POST">
             <label for="signin-id">アカウント名</label>
             <input id="signin-id" name="username" type="text" placeholder="メールアドレスを入力">
 
