@@ -3,7 +3,7 @@
 // 設定: データベース接続情報
 // --------------------------------------------------
 // ★チームで共有されている接続情報に変更してください
-$host = 'localhost'; 
+$host = 'localhost';
 $dbname = 'your_database_name'; // ★自分のDB名に変更
 $user = 'your_user';            // ★Postgresのユーザー名 (例: postgres)
 $pass = 'your_password';        // ★Postgresのパスワード
