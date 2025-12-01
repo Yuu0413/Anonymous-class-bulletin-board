@@ -1,22 +1,16 @@
 <?php
-// セッションが開始されていなければ開始する（二重起動防止）
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
-// ログインチェック（ログインしていなければ強制的にログイン画面へ）
-// ※ $root_path が未定義の場合は空文字にする
 $path = isset($root_path) ? $root_path : './';
 
-// auth_login.php と logout.php は、ログインしていなくてもアクセスOKにする
+// ログイン画面とログアウト画面、signup.php はログイン不要でアクセス可能にする
 $current_file = basename($_SERVER['PHP_SELF']);
-if (!isset($_SESSION['user_id']) && $current_file !== 'auth_login.php' && $current_file !== 'logout.php') {
-    // ログインしていない場合、ログインページへリダイレクト
+if (!isset($_SESSION['user_id']) && $current_file !== 'auth_login.php' && $current_file !== 'logout.php' && $current_file !== 'signup.php') {
     header("Location: {$path}auth/auth_login.php");
     exit();
 }
 
-// ページタイトルが設定されていなければデフォルトを表示
 $page_title = isset($page_title) ? $page_title : '授業口コミサイト';
 ?>
 <!DOCTYPE html>
@@ -29,6 +23,8 @@ $page_title = isset($page_title) ? $page_title : '授業口コミサイト';
     <?php if (isset($page_css)): ?>
         <link rel="stylesheet" href="<?php echo $path . 'css/' . $page_css; ?>">
     <?php endif; ?>
+
+    <style>
         /* 共通スタイル */
         body {
             font-family: "Hiragino Sans", "Meiryo", sans-serif;
@@ -39,7 +35,6 @@ $page_title = isset($page_title) ? $page_title : '授業口コミサイト';
             flex-direction: column;
             min-height: 100vh;
         }
-        /* ヘッダー（ナビゲーション） */
         header {
             background-color: #007bff;
             color: white;
@@ -62,16 +57,14 @@ $page_title = isset($page_title) ? $page_title : '授業口コミサイト';
         header a:hover {
             text-decoration: underline;
         }
-        /* メインコンテンツ */
         main {
-            flex: 1; /* フッターを下に押し下げる */
+            flex: 1;
             padding: 20px;
             max-width: 800px;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
         }
-        /* フッター */
         footer {
             background-color: #333;
             color: #fff;
@@ -95,17 +88,3 @@ $page_title = isset($page_title) ? $page_title : '授業口コミサイト';
 </header>
 
 <main>
-    ```
-
----
-
-### 2. `includes/footer.php`
-ページの締めくくり部分です。
-
-```php
-</main> <footer>
-    <p>&copy; <?php echo date('Y'); ?> 授業口コミサイト All Rights Reserved.</p>
-</footer>
-
-</body>
-</html>
