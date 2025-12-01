@@ -1,3 +1,23 @@
+<?php
+// 1. セッションを開始（破棄するためにはまず開始する必要があります）
+session_start();
+
+// 2. セッション変数をすべて解除（空にする）
+$_SESSION = array();
+
+// 3. セッションクッキーを削除（ブラウザ側のIDも消すための定型処理）
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+}
+
+// 4. サーバー側のセッションを完全に破棄
+session_destroy();
+?>
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,7 +33,8 @@
             border: 1px solid #ccc;
             border-radius: 8px;
             font-family: sans-serif;
-            text-align: center; /* 中央揃えを追加 */
+            text-align: center;
+            background-color: #fff; /* 背景色を明示的に白に設定 */
         }
 
         .message-box h2 {
@@ -29,7 +50,7 @@
         .message-box a {
             display: inline-block;
             padding: 10px 15px;
-            background-color: #007bff; /* 青系のボタンカラー */
+            background-color: #007bff;
             color: white;
             text-decoration: none;
             border-radius: 5px;
@@ -42,7 +63,7 @@
         }
 
         body {
-            background-color: #e6f0ff; 
+            background-color: #e6f0ff;
             font-family: "Hiragino Sans", "Meiryo", sans-serif;
         }
     </style>
@@ -53,7 +74,7 @@
         <h2>ログアウトしました</h2>
         <p>ご利用ありがとうございました。</p>
 
-        <a href="login.php">再度ログインする</a>
+        <a href="auth_login.php">再度ログインする</a>
     </div>
 </body>
 </html>
