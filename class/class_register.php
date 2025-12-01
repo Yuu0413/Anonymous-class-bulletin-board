@@ -24,7 +24,7 @@ $alertClass = ""; // Bootstrapのアラート色指定用
 
 // 4. POST処理
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     $c_name = $_POST['course_name'];
     $p_name = $_POST['prof_name'];
 
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $message = "授業「" . htmlspecialchars($c_name) . "」を登録しました！";
             $alertClass = "alert-success"; // 緑色
-            
+
         } catch (PDOException $e) {
             $message = "エラーが発生しました: " . $e->getMessage();
             $alertClass = "alert-danger"; // 赤色
@@ -56,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>授業登録 | 匿名口コミアプリ</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="class_register.css">
 </head>
 <body>
@@ -87,12 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="course_name" class="form-label fw-bold text-secondary">授業名</label>
                             <input type="text" class="form-control" id="course_name" name="course_name" placeholder="例: 情報工学概論" required>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="prof_name" class="form-label fw-bold text-secondary">担当教授名</label>
                             <input type="text" class="form-control" id="prof_name" name="prof_name" placeholder="例: 山田 太郎" required>
                         </div>
-                        
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                 登録する
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php
                 $sql_select = "SELECT * FROM courses ORDER BY course_id DESC LIMIT 10";
                 $stmt = $pdo->query($sql_select);
-                
+
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     echo "<li>";
                     echo "ID:" . htmlspecialchars($row['course_id']) . " ";

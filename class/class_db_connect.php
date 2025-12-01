@@ -14,10 +14,10 @@ $dsn = "pgsql:host=$host;port=5432;dbname=$dbname";
 try {
     // 接続実行！
     $pdo = new PDO($dsn, $user, $password);
-    
+
     // エラーが起きたら隠さずに報告するように設定
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
+
     // 成功したら何も言わない（静かに準備完了）
 
 } catch (PDOException $e) {

@@ -15,11 +15,11 @@ if (isset($_POST['signin'])) {
 
     // 入力が 'test' かつ 'test' ならログイン成功
     if ($email === $dummy_user['email'] && $password === $dummy_user['password']) {
-        
+
         session_regenerate_id(true);
         $_SESSION['user_id'] = $dummy_user['id'];
         $_SESSION['user_name'] = $dummy_user['name'];
-        
+
         header("Location: ../index.php");
         exit();
 

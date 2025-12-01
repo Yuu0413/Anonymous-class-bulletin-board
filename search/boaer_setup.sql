@@ -21,19 +21,19 @@ CREATE TABLE courses (
 --------------------------------------------------
 CREATE TABLE reviews (
     review_id SERIAL PRIMARY KEY,
-    
+
     course_id INTEGER NOT NULL,
     user_id INTEGER,
-    
+
     overall_rating SMALLINT NOT NULL CHECK (overall_rating >= 1 AND overall_rating <= 5), -- 総合評価 (1～5)
     easiness_rating SMALLINT NOT NULL CHECK (easiness_rating >= 1 AND easiness_rating <= 5),   -- 楽単度 (1～5)
-    
+
     review_text TEXT NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- 投稿日時
-    
-    FOREIGN KEY (course_id) 
+
+    FOREIGN KEY (course_id)
         REFERENCES courses(course_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) 
+    FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE SET NULL
 );
 
@@ -42,12 +42,12 @@ CREATE TABLE reviews (
 -- テストデータ挿入 (評価項目と投稿日時を反映)
 -- ========================================================================
 
--- users 
+-- users
 INSERT INTO users (email, password_hash) VALUES
 ('alice@university.ac.jp', 'alice_hashed_pw_123'),
 ('bob@university.ac.jp', 'bob_hashed_pw_456');
 
--- courses 
+-- courses
 INSERT INTO courses (course_name, professor_name) VALUES
 ('Webアプリケーション開発論', '山田 太郎'),       -- ID: 1
 ('データ構造とアルゴリズム', '佐藤 次郎'),         -- ID: 2

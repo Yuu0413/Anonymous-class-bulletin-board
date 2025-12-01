@@ -1,9 +1,9 @@
 <?php
 // 1. データベース接続設定 (PostgreSQL 用)
 $host = 'localhost';
-$db   = 'review_app_db'; 
-$user = 'db_user';       
-$pass = 'your_password'; 
+$db   = 'review_app_db';
+$user = 'db_user';
+$pass = 'your_password';
 
 $dsn = "pgsql:host=$host;dbname=$dbname";
 $options = [
@@ -20,9 +20,9 @@ try {
 
 // 2. 変数設定、キーワード、ページネーション、ランキング基準の取得
 
-$keyword = $_GET['q'] ?? ''; 
-$page = (int) ($_GET['page'] ?? 1); 
-$perPage = 15; 
+$keyword = $_GET['q'] ?? '';
+$page = (int) ($_GET['page'] ?? 1);
+$perPage = 15;
 $offset = ($page - 1) * $perPage;
 $rankBy = $_GET['rank_by'] ?? 'popular';
 
@@ -38,7 +38,7 @@ if (!empty($keyword)) {
     $searchMode = false;
 } else {
     $rankingTitle = '人気授業ランキング';
-    $rankBy = 'popular'; 
+    $rankBy = 'popular';
     $searchMode = false;
 }
 
@@ -46,7 +46,7 @@ if (!empty($keyword)) {
 
 // 基本クエリ（平均評価、口コミ数、最新投稿日時を算出）
 $baseQuery = "
-    SELECT 
+    SELECT
         c.course_id,
         c.course_name,
         c.professor_name,
@@ -54,23 +54,23 @@ $baseQuery = "
         COALESCE(AVG(r.overall_rating), 0) AS avg_overall_rating,
         COALESCE(AVG(r.easiness_rating), 0) AS avg_easiness_rating,
         MAX(r.created_at) AS last_reviewed_at  -- 最新の口コミ投稿日時
-    FROM 
+    FROM
         courses c
-    LEFT JOIN 
+    LEFT JOIN
         reviews r ON c.course_id = r.course_id
 ";
 
 // WHERE句: キーワード検索機能 (検索モードの場合のみ適用)
 $whereClause = "WHERE 1=1";
 if ($searchMode) {
-    $whereClause .= " 
+    $whereClause .= "
         AND (LOWER(c.course_name) LIKE :keyword OR LOWER(c.professor_name) LIKE :keyword)
     ";
 }
 
 // GROUP BY 句
 $groupByClause = "
-    GROUP BY 
+    GROUP BY
         c.course_id, c.course_name, c.professor_name
 ";
 
@@ -124,17 +124,17 @@ function displayStarRating($rating) {
     $fullStar = '⭐';
     $emptyStar = '☆';
     $output = '';
-    
+
     $full = floor($rating);
     for ($i = 0; $i < $full; $i++) {
         $output .= $fullStar;
     }
-    
+
     $remain = 5 - $full;
     for ($i = 0; $i < $remain; $i++) {
         $output .= $emptyStar;
     }
-    
+
     return $output;
 }
 
@@ -157,31 +157,31 @@ function formatDateTime($datetime) {
         /* -------------------------------------- */
         /* CSS スタイル */
         /* -------------------------------------- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
             padding: 20px;
             background-color: #e9ecef;
             color: #333;
         }
-        .container { 
-            max-width: 1200px; 
-            margin: 20px auto; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        h1 { 
+        h1 {
             color: #007bff;
-            border-bottom: 3px solid #007bff; 
-            padding-bottom: 15px; 
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
             margin-bottom: 15px;
             font-size: 1.8em;
         }
-        .search-form { 
-            display: flex; 
-            margin-bottom: 20px; 
+        .search-form {
+            display: flex;
+            margin-bottom: 20px;
         }
         .search-form input[type="text"] {
             flex-grow: 1;
@@ -224,41 +224,41 @@ function formatDateTime($datetime) {
             margin-bottom: 20px;
         }
         /* テーブルスタイル */
-        .result-table { 
-            width: 100%; 
-            border-collapse: separate; 
+        .result-table {
+            width: 100%;
+            border-collapse: separate;
             border-spacing: 0 10px;
         }
-        .result-table th { 
-            background-color: #343a40; 
-            color: white; 
-            padding: 15px; 
+        .result-table th {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
             text-align: left;
             font-weight: 600;
         }
-        .result-table td { 
+        .result-table td {
             background-color: #f8f9fa;
-            border: 1px solid #dee2e6; 
+            border: 1px solid #dee2e6;
             border-width: 1px 0;
             padding: 15px;
             vertical-align: middle;
         }
-        .result-table tr:hover td { 
+        .result-table tr:hover td {
             background-color: #e2f0ff;
             transition: background-color 0.2s;
         }
         /* ランキングバッジ */
-        .ranking-badge { 
-            font-weight: bold; 
-            color: white; 
-            padding: 5px 10px; 
-            border-radius: 20px; 
-            margin-right: 8px; 
+        .ranking-badge {
+            font-weight: bold;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin-right: 8px;
             font-size: 1em;
             display: inline-block;
             min-width: 50px;
             text-align: center;
-            background: #6c757d; 
+            background: #6c757d;
         }
         /* リンク, ページネーション (省略) */
     </style>
@@ -266,7 +266,7 @@ function formatDateTime($datetime) {
 <body>
     <div class="container">
         <h1>📚 <?= htmlspecialchars($rankingTitle) ?></h1>
-        
+
         <form action="board_search.php" method="GET" class="search-form">
             <input type="hidden" name="rank_by" value="<?= htmlspecialchars($rankBy) ?>">
             <input type="text" name="q" placeholder="授業名または先生名を入力..." value="<?= htmlspecialchars($keyword) ?>">
@@ -275,7 +275,7 @@ function formatDateTime($datetime) {
 
         <?php if (!$searchMode): ?>
             <div class="ranking-switch">
-                ランキング順序: 
+                ランキング順序:
                 <a href="board_search.php?rank_by=popular" class="<?= $rankBy === 'popular' ? 'active' : '' ?>">
                     人気順
                 </a>
@@ -284,7 +284,7 @@ function formatDateTime($datetime) {
                 </a>
             </div>
         <?php endif; ?>
-        
+
         <p>全 **<?= number_format($totalCount) ?>** 件中、<?= $offset + 1 ?>件目から<?= $offset + count($results) ?>件目を表示しています。</p>
 
         <table class="result-table">
@@ -303,7 +303,7 @@ function formatDateTime($datetime) {
                 <?php if (empty($results)): ?>
                     <tr><td colspan="7" style="text-align: center;">条件に一致する授業は見つかりませんでした。</td></tr>
                 <?php else: ?>
-                    <?php foreach ($results as $index => $course): 
+                    <?php foreach ($results as $index => $course):
                         $rank = $offset + $index + 1;
                         $badgeClass = '';
                         if (!$searchMode && $rankBy === 'popular' && $rank <= 3) {
@@ -341,7 +341,7 @@ function formatDateTime($datetime) {
         </table>
 
         <div class="pagination">
-            <?php 
+            <?php
             // ページネーションのクエリ文字列にキーワードとランキング基準を保持
             $queryString = http_build_query(array_filter(['q' => $keyword, 'rank_by' => $rankBy])); 
 

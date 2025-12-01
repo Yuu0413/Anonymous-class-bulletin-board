@@ -5,9 +5,9 @@ session_start();
 // 1. DB接続設定
 // --------------------------------------------------
 $host = 'localhost';
-$dbname = 'a_class'; 
-$user = 'soto';   
-$password = 'IGEGk8Ok'; 
+$dbname = 'a_class';
+$user = 'soto';
+$password = 'IGEGk8Ok';
 
 try {
     $dsn = "pgsql:host=$host;dbname=$dbname";
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 3. DBへの保存（SQLの項目名を修正済み）
             $sql = "INSERT INTO reviews (course_id, user_id, overall_rating, easiness_rating, review_text)
                     VALUES (:course_id, :user_id, :overall_rating, :easiness_rating, :review_text)";
-            
+
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':course_id', $selected_course_id, PDO::PARAM_INT);
             $stmt->bindValue(':user_id', $_SESSION['user_id'], PDO::PARAM_INT);
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // 登録完了後は一覧画面（board_search.php）に戻る
             // ※必要であれば class_detail.php などに変更してください
-            header("Location: board_search.php?msg=posted"); 
+            header("Location: board_search.php?msg=posted");
             exit;
 
         } catch (PDOException $e) {
@@ -160,11 +160,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?php for ($i = 1; $i <= 5; $i++) { ?>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input"
-                                                   type="radio"
-                                                   name="overall_rating"
-                                                   id="overall_<?php echo $i; ?>"
-                                                   value="<?php echo $i; ?>"
-                                                   required
+                                                    type="radio"
+                                                    name="overall_rating"
+                                                    id="overall_<?php echo $i; ?>"
+                                                    value="<?php echo $i; ?>"
+                                                    required
                                                 <?php if (isset($overall_rating) && (int)$overall_rating === $i) echo 'checked'; ?>>
                                             <label class="form-check-label text-warning" for="overall_<?php echo $i; ?>">
                                                 <?php echo str_repeat("★", $i); ?>
@@ -181,11 +181,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?php for ($i = 1; $i <= 5; $i++) { ?>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input"
-                                                   type="radio"
-                                                   name="easiness_rating"
-                                                   id="easiness_<?php echo $i; ?>"
-                                                   value="<?php echo $i; ?>"
-                                                   required
+                                                    type="radio"
+                                                    name="easiness_rating"
+                                                    id="easiness_<?php echo $i; ?>"
+                                                    value="<?php echo $i; ?>"
+                                                    required
                                                 <?php if (isset($easiness_rating) && (int)$easiness_rating === $i) echo 'checked'; ?>>
                                             <label class="form-check-label text-warning" for="easiness_<?php echo $i; ?>">
                                                 <?php echo str_repeat("★", $i); ?>
@@ -198,11 +198,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-4">
                                 <label for="review_text" class="form-label fw-bold text-secondary">口コミ本文</label>
                                 <textarea class="form-control"
-                                          id="review_text"
-                                          name="review_text"
-                                          rows="5"
-                                          required
-                                          placeholder="授業の雰囲気、課題量、テストの難易度、出席状況など自由に書いてください。"><?php
+                                            id="review_text"
+                                            name="review_text"
+                                            rows="5"
+                                            required
+                                            placeholder="授業の雰囲気、課題量、テストの難易度、出席状況など自由に書いてください。"><?php
                                             echo isset($review_text) ? h($review_text) : '';
                                         ?></textarea>
                             </div>

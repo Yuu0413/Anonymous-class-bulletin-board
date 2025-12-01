@@ -12,7 +12,7 @@ try {
     // PostgreSQL接続 (ご提示のSQLがPostgres形式のため)
     $dsn = "pgsql:host=$host;dbname=$dbname";
     $pdo = new PDO($dsn, $user, $password);
-    
+
     // エラー発生時に例外を投げる設定
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
@@ -42,7 +42,7 @@ $order_by = $allowed_sorts[$sort_param] ?? 'review_count DESC';
 // --------------------------------------------------
 
 $sql = "
-    SELECT 
+    SELECT
         c.course_id,
         c.course_name,
         c.professor_name,
@@ -52,13 +52,13 @@ $sql = "
         COALESCE(AVG(r.easiness_rating), 0) as avg_easiness,
         -- 総合評価の平均
         COALESCE(AVG(r.overall_rating), 0) as avg_overall
-    FROM 
+    FROM
         courses c
-    LEFT JOIN 
+    LEFT JOIN
         reviews r ON c.course_id = r.course_id
-    GROUP BY 
+    GROUP BY
         c.course_id
-    ORDER BY 
+    ORDER BY
         {$order_by}
 ";
 
@@ -122,7 +122,7 @@ function h($str) {
                             <p class="professor">
                                 担当: <?= h($course['professor_name']) ?> 先生
                             </p>
-                            
+
                             <div class="stats-container">
                                 <div class="stat-box">
                                     <span class="stat-label">口コミ</span>
