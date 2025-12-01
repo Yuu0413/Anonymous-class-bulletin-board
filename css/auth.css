@@ -1,0 +1,63 @@
+/* css/auth.css */
+
+.signin {
+    width: 300px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #fff; /* 背景色を追加（共通背景と区別するため） */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 少し影をつけてリッチに */
+}
+
+.signin h2 {
+    text-align: center;
+    margin-top: 0;
+    color: #333;
+}
+
+.signin label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+}
+
+.signin input {
+    width: 100%;
+    padding: 10px; /* 少し広げました */
+    margin-bottom: 16px;
+    font-size: 14px;
+    box-sizing: border-box; /* 枠線を含めたサイズ計算にする（崩れ防止） */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.signin button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* ログインボタン（メイン） */
+.signin button[name="signin"] {
+    background-color: #007bff;
+    color: white;
+}
+.signin button[name="signin"]:hover {
+    background-color: #0056b3;
+}
+
+/* 新規登録ボタン（サブ） */
+.signin button:not([name="signin"]) {
+    background-color: #6c757d;
+    color: white;
+}
+.signin button:not([name="signin"]):hover {
+    background-color: #545b62;
+}
