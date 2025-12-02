@@ -1,0 +1,27 @@
+/* css/review_post.css */
+
+body {
+    background-color: #f9f9f9;
+}
+
+.register-card {
+    border: none;
+    border-radius: 15px; /* 丸みを追加 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.header-icon {
+    font-size: 3rem;
+    color: #0d6efd;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+/* ラジオボタン（★）の調整 */
+.form-check-inline {
+    margin-right: 0.5rem;
+}
+
+.text-warning {
+    color: #ffc107 !important; /* 星の色 */
+}
