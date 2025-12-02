@@ -7,9 +7,8 @@ $page_css = 'class_detail.css'; // 作成したCSS
 require_once $root_path . 'includes/header.php';
 
 // 2. DB接続
-// ※ includes/db.php を作っている場合はそちらを使ってください
-// require_once $root_path . 'includes/db.php';
-require_once 'class_db_connect.php';
+// ★修正箇所: 古い 'class_db_connect.php' ではなく、共通の 'includes/db.php' を読み込みます
+require_once $root_path . 'includes/db.php';
 
 // 3. IDの取得と検証
 $c_id = filter_input(INPUT_GET, 'course_id', FILTER_VALIDATE_INT);
@@ -38,7 +37,6 @@ try {
         $error_msg = "指定された授業が見つかりませんでした。";
     } else {
         // B. レビュー情報の取得
-        // ※ reviewsテーブルがない場合はエラーになるので注意してください
         $sql_reviews = "SELECT * FROM reviews WHERE course_id = :id ORDER BY created_at DESC";
         $stmt_r = $pdo->prepare($sql_reviews);
         $stmt_r->bindValue(':id', $c_id, PDO::PARAM_INT);
@@ -49,7 +47,10 @@ try {
         if (count($reviews) > 0) {
             $total = 0;
             foreach ($reviews as $r) {
-                $total += $r['rating'];
+                // reviewsテーブルのカラム名 overall_rating を使用
+                // もし rating カラムを使っている場合は $r['rating'] に戻してください
+                $rating_val = isset($r['overall_rating']) ? $r['overall_rating'] : (isset($r['rating']) ? $r['rating'] : 0);
+                $total += $rating_val;
             }
             $avg_rating = round($total / count($reviews), 1);
         }
@@ -80,12 +81,14 @@ function renderStars($rating) {
 }
 ?>
 
+<!-- Bootstrap CSS (このページ専用) -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-5">
 
     <div class="mb-4">
-        <a href="class_register.php" class="btn btn-outline-secondary">&larr; クラス一覧に戻る</a>
+        <!-- 戻り先を一覧検索画面へ修正 -->
+        <a href="../search/board_search.php" class="btn btn-outline-secondary">&larr; 授業一覧に戻る</a>
     </div>
 
     <?php if ($error_msg): ?>
@@ -116,6 +119,7 @@ function renderStars($rating) {
                 </div>
 
                 <div class="mt-4">
+                    <!-- レビュー投稿へのリンク -->
                     <a href="../review/review_post.php?course_id=<?php echo h($course['course_id']); ?>" class="btn btn-primary btn-lg shadow-sm">
                         ✎ この授業の口コミを書く
                     </a>
@@ -135,13 +139,21 @@ function renderStars($rating) {
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
                                     <span class="fw-bold me-2">匿名さん</span>
-                                    <?php echo renderStars($review['rating']); ?>
+                                    <!-- overall_rating があれば優先、なければ rating (旧仕様) -->
+                                    <?php
+                                        $r_val = isset($review['overall_rating']) ? $review['overall_rating'] : (isset($review['rating']) ? $review['rating'] : 0);
+                                        echo renderStars($r_val);
+                                    ?>
                                 </div>
                                 <small class="text-muted">
                                     <?php echo h(date('Y/m/d', strtotime($review['created_at']))); ?>
                                 </small>
                             </div>
-                            <p class="card-text mb-0" style="white-space: pre-wrap;"><?php echo h($review['comment']); ?></p>
+                            <!-- review_text があれば優先、なければ comment (旧仕様) -->
+                            <p class="card-text mb-0" style="white-space: pre-wrap;"><?php
+                                $r_text = isset($review['review_text']) ? $review['review_text'] : (isset($review['comment']) ? $review['comment'] : '');
+                                echo h($r_text);
+                            ?></p>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -157,6 +169,7 @@ function renderStars($rating) {
 
 </div>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php
