@@ -1,0 +1,33 @@
+/* css/class_detail.css */
+
+/* コンテナの微調整（ヘッダーと重ならないように） */
+.container {
+    background-color: transparent;
+}
+
+/* 評価のバッジ（数字部分） */
+.rating-badge {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+/* レビューカード */
+.review-card {
+    border-left: 5px solid #0d6efd; /* アクセントカラー(青) */
+    background-color: #fff;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: 0.375rem; /* Bootstrapの角丸に合わせる */
+}
+
+/* 戻るボタンの調整 */
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: #6c757d;
+}
+.back-link:hover {
+    color: #333;
+}
