@@ -1,153 +1,179 @@
 <?php
-// --------------------------------------------------
-// 設定: データベース接続情報
-// --------------------------------------------------
-// ★チームで共有されている接続情報に変更してください
-$host = 'localhost'; 
-$dbname = 'your_database_name'; // ★自分のDB名に変更
-$user = 'your_user';            // ★Postgresのユーザー名 (例: postgres)
-$pass = 'your_password';        // ★Postgresのパスワード
+// ▼▼▼ エラーを表示させる設定 ▼▼▼
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+// ▲▲▲▲▲▲
 
-try {
-    // PostgreSQL接続 (ご提示のSQLがPostgres形式のため)
-    $dsn = "pgsql:host=$host;dbname=$dbname";
-    $pdo = new PDO($dsn, $user, $password);
-    
-    // エラー発生時に例外を投げる設定
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    // 本番環境ではエラーメッセージを隠すのが一般的ですが、開発中は表示します
-    exit('データベース接続失敗: ' . $e->getMessage());
+// 1. 設定と共通パーツ
+$root_path = '../';
+$page_title = 'ランキング';
+$page_css = 'board_search.css'; // デザインは検索画面と共通
+
+require_once $root_path . 'includes/header.php';
+require_once $root_path . 'includes/db.php';
+
+// 2. パラメータ取得（人気順か新着順か）
+$rankBy = $_GET['rank_by'] ?? 'popular';
+
+if ($rankBy === 'newest') {
+    $rankingTitle = '✨ 新着授業ランキング';
+} else {
+    $rankingTitle = '🔥 人気授業ランキング';
+    $rankBy = 'popular';
 }
 
-// --------------------------------------------------
-// 処理: 並び替え機能 (Controller)
-// --------------------------------------------------
+// 3. SQLクエリ構築
+$course_data = [];
+$error_msg = "";
 
-// URLパラメータを取得 (例: ranking.php?sort=easiness)
-$sort_param = $_GET['sort'] ?? 'review_count';
-
-// 許可するソート条件のリスト (ホワイトリスト方式でセキュリティ対策)
-$allowed_sorts = [
-    'review_count' => 'review_count DESC',       // 口コミ件数が多い順
-    'easiness'     => 'avg_easiness DESC',       // 楽単度が高い順
-    'overall'      => 'avg_overall DESC',        // 総合評価が高い順 (＝先生の人気)
-];
-
-// 正しいパラメータならそれを使い、不正ならデフォルト(review_count)を使う
-$order_by = $allowed_sorts[$sort_param] ?? 'review_count DESC';
-
-// --------------------------------------------------
-// 処理: データ取得 (Model)
-// --------------------------------------------------
-
-$sql = "
-    SELECT 
-        c.course_id,
-        c.course_name,
-        c.professor_name,
-        -- 口コミ数
-        COUNT(r.review_id) as review_count,
-        -- 楽単度の平均 (NULLなら0にする)
-        COALESCE(AVG(r.easiness_rating), 0) as avg_easiness,
-        -- 総合評価の平均
-        COALESCE(AVG(r.overall_rating), 0) as avg_overall
-    FROM 
-        courses c
-    LEFT JOIN 
-        reviews r ON c.course_id = r.course_id
-    GROUP BY 
-        c.course_id
-    ORDER BY 
-        {$order_by}
-";
-
-// クエリ実行
 try {
-    $stmt = $pdo->query($sql);
-    $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // ランキング専用クエリ
+    $sql = "
+        SELECT
+            c.course_id,
+            c.course_name,
+            c.professor_name,
+            COUNT(r.review_id) AS review_count,
+            COALESCE(AVG(r.overall_rating), 0) AS avg_overall_rating,
+            COALESCE(AVG(r.easiness_rating), 0) AS avg_easiness_rating,
+            MAX(r.created_at) AS last_reviewed_at
+        FROM
+            courses c
+        LEFT JOIN
+            reviews r ON c.course_id = r.course_id
+        GROUP BY
+            c.course_id, c.course_name, c.professor_name
+    ";
+
+    // 並び替え条件
+    if ($rankBy === 'newest') {
+        // 新着順: 最新投稿日時が新しい順 (NULLは最後)
+        $sql .= " ORDER BY last_reviewed_at DESC NULLS LAST, c.course_id DESC ";
+    } else {
+        // 人気順: 口コミ数が多い順 -> 同数なら平均評価が高い順
+        $sql .= " ORDER BY review_count DESC, avg_overall_rating DESC ";
+    }
+
+    // 上位20件のみ表示
+    $sql .= " LIMIT 20 ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $course_data = $stmt->fetchAll();
+
 } catch (PDOException $e) {
-    exit('データ取得失敗: ' . $e->getMessage());
+    $error_msg = "データ取得エラー: " . $e->getMessage();
 }
 
-// XSS対策用関数 (表示時に使用)
-function h($str) {
-    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+// ヘルパー関数
+function renderStars($rating) {
+    $rating = round($rating);
+    $stars = str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
+    return '<span class="star">' . $stars . '</span>';
+}
+function h($s) {
+    return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>授業人気ランキング</title>
-    <link rel="stylesheet" href="ranking.css">
-</head>
-<body>
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <div class="container">
-        <header class="page-header">
-            <h1>🏆 授業人気ランキング</h1>
-            <p>口コミや楽単度から、人気の授業を探そう！</p>
-        </header>
+<div class="container py-5">
 
-        <div class="sort-menu">
-            <span class="sort-label">並び替え:</span>
-            <a href="?sort=review_count" class="sort-btn <?= $sort_param === 'review_count' ? 'active' : '' ?>">
-                📝 口コミ数順
-            </a>
-            <a href="?sort=easiness" class="sort-btn <?= $sort_param === 'easiness' ? 'active' : '' ?>">
-                ✨ 楽単度順
-            </a>
-            <a href="?sort=overall" class="sort-btn <?= $sort_param === 'overall' ? 'active' : '' ?>">
-                🔥 人気順(総合)
-            </a>
+    <!-- タイトル -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold"><?php echo h($rankingTitle); ?></h2>
+        <p class="text-muted">学生のみんなが注目している授業TOP20</p>
+    </div>
+
+    <!-- 切り替えタブ -->
+    <div class="ranking-switch">
+        <a href="?rank_by=popular" class="<?php echo $rankBy === 'popular' ? 'active' : ''; ?>">
+            🔥 人気ランキング
+        </a>
+        <a href="?rank_by=newest" class="<?php echo $rankBy === 'newest' ? 'active' : ''; ?>">
+            ✨ 新着の口コミ
+        </a>
+    </div>
+
+    <!-- エラーまたはデータ表示 -->
+    <?php if ($error_msg): ?>
+        <div class="alert alert-danger"><?php echo h($error_msg); ?></div>
+    <?php elseif (empty($course_data)): ?>
+        <div class="text-center py-5 text-muted">
+            <p class="fs-5">まだデータがありません。</p>
+            <a href="../review/review_post.php" class="btn btn-primary mt-2">最初の口コミを投稿する</a>
         </div>
+    <?php else: ?>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <?php foreach ($course_data as $i => $row): 
+                $rank = $i + 1;
+                // 上位3位に特別な色をつける
+                $rankClass = '';
+                if ($rankBy === 'popular') {
+                    if ($rank === 1) $rankClass = 'rank-1';
+                    elseif ($rank === 2) $rankClass = 'rank-2';
+                    elseif ($rank === 3) $rankClass = 'rank-3';
+                }
+            ?>
+            <div class="col">
+                <div class="course-card">
+                    <!-- 順位バッジ -->
+                    <div class="rank-badge <?php echo $rankClass ? $rankClass : 'bg-secondary'; ?>">
+                        <?php echo $rank; ?>位
+                    </div>
 
-        <div class="ranking-list">
-            <?php if (empty($courses)): ?>
-                <p class="no-data">現在、登録されている授業はありません。</p>
-            <?php else: ?>
-                <?php foreach ($courses as $index => $course): ?>
-                    <div class="course-card">
-                        <div class="rank-badge rank-<?= $index + 1 ?>"><?= $index + 1 ?>位</div>
-
-                        <div class="card-content">
-                            <h2 class="course-title">
-                                <a href="detail.php?id=<?= h($course['course_id']) ?>">
-                                    <?= h($course['course_name']) ?>
-                                </a>
-                            </h2>
-                            <p class="professor">
-                                担当: <?= h($course['professor_name']) ?> 先生
-                            </p>
-                            
-                            <div class="stats-container">
-                                <div class="stat-box">
-                                    <span class="stat-label">口コミ</span>
-                                    <span class="stat-value"><?= $course['review_count'] ?></span>
-                                    <span class="stat-unit">件</span>
+                    <div>
+                        <h4 class="course-title text-truncate"><?php echo h($row['course_name']); ?></h4>
+                        <p class="prof-name">👨‍🏫 <?php echo h($row['professor_name']); ?></p>
+                        
+                        <div class="rating-box">
+                            <div class="rating-row">
+                                <span>総合評価</span>
+                                <div>
+                                    <?php echo renderStars($row['avg_overall_rating']); ?>
+                                    <span class="fw-bold ms-1"><?php echo number_format($row['avg_overall_rating'], 1); ?></span>
                                 </div>
-                                <div class="stat-box">
-                                    <span class="stat-label">楽単度</span>
-                                    <span class="stat-value star-color">
-                                        ★<?= number_format($course['avg_easiness'], 1) ?>
-                                    </span>
-                                </div>
-                                <div class="stat-box">
-                                    <span class="stat-label">総合評価</span>
-                                    <span class="stat-value star-color">
-                                        ★<?= number_format($course['avg_overall'], 1) ?>
-                                    </span>
+                            </div>
+                            <div class="rating-row">
+                                <span>口コミ数</span>
+                                <div class="fw-bold">
+                                    <?php echo number_format($row['review_count']); ?> 件
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="review-meta">
+                            最終更新: <?php echo $row['last_reviewed_at'] ? date('Y/m/d', strtotime($row['last_reviewed_at'])) : '-'; ?>
+                        </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+
+                    <div class="mt-3">
+                        <a href="../class/class_detail.php?course_id=<?php echo h($row['course_id']); ?>" 
+                           class="btn btn-outline-primary btn-detail stretched-link">
+                           詳細を見る
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
         </div>
+
+    <?php endif; ?>
+    
+    <div class="text-center mt-5">
+        <a href="../home.php" class="text-secondary text-decoration-none">
+            &larr; メインメニューへ戻る
+        </a>
     </div>
 
-</body>
-</html>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<?php
+require_once $root_path . 'includes/footer.php';
+?>

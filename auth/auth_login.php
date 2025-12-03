@@ -1,60 +1,32 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>授業口コミサイト</title>
+<?php
+// 1. 共通パーツのパス設定
+$root_path = '../';
+$page_title = 'ログイン';
+$page_css = 'auth.css'; // 作成したCSSファイルを指定
 
-    <style>
-        .signin {
-            width: 300px;
-            margin: 50px auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-family: sans-serif;
-        }
+// 2. ヘッダー読み込み
+require_once $root_path . 'includes/header.php';
+?>
 
-        .signin label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
-        }
+<div class="signin">
+    <h2>ログイン</h2>
 
-        .signin input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 16px;
-            font-size: 14px;
-        }
+    <form action="auth_session.php" method="POST">
+        <label for="signin-id">アカウント名</label>
+        <input id="signin-id" name="username" type="text" placeholder="メールアドレスを入力" required>
 
-        .signin button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 12px;
-        }
-        body {
-        background-color: #e6f0ff; 
-        font-family: "Hiragino Sans", "Meiryo", sans-serif;
-    }
-    </style>
-</head>
+        <label for="signin-pass">パスワード</label>
+        <input id="signin-pass" name="password" type="password" placeholder="パスワードを入力" required>
 
-<body>
-    <div class="signin">
-        <h2>ログイン</h2>
+        <button name="signin" type="submit">ログインする</button>
 
-        <form action="auth_session.php" method="POST">
-            <label for="signin-id">アカウント名</label>
-            <input id="signin-id" name="username" type="text" placeholder="メールアドレスを入力">
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
-            <label for="signin-pass">パスワード</label>
-            <input id="signin-pass" name="password" type="password" placeholder="パスワードを入力">
-
-            <button name="signin" type="submit">ログインする</button>
-
-            <label for="newsign-id">新規登録</label>
-            <button type="submit" formaction="signup.php">新規登録</button>
-        </form>
-    </div>
-</body>
-</html>
+        <label for="newsign-id">アカウントをお持ちでない方</label>
+        <button type="submit" formaction="signup.php">新規登録画面へ</button>
+    </form>
+</div>
+<?php
+// 3. フッター読み込み
+require_once $root_path . 'includes/footer.php';
+?>

@@ -1,30 +1,21 @@
 <?php
-/* class_register.php */
+// 1. 設定と共通パーツ読み込み
+$root_path = '../';
+$page_title = '授業登録';
+$page_css = 'class_register.css'; // 作成したCSS
 
-// 1. セッション開始
-session_start();
+require_once $root_path . 'includes/header.php';
 
 // 2. DB接続
-require 'class_db_connect.php';
+// ※ includes/db.php に移行済みならそちらを使ってください
+require_once '../includes/db.php';
 
-// 3. 【仮実装】ログインモック
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 999; 
-}
-
-// ログインチェック
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
-    exit;
-}
-
-// 変数初期化
+// 3. POST処理
 $message = "";
-$alertClass = ""; // Bootstrapのアラート色指定用
+$alertClass = "";
 
-// 4. POST処理
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     $c_name = $_POST['course_name'];
     $p_name = $_POST['prof_name'];
 
@@ -37,31 +28,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
 
             $message = "授業「" . htmlspecialchars($c_name) . "」を登録しました！";
-            $alertClass = "alert-success"; // 緑色
-            
+            $alertClass = "alert-success"; // Bootstrap: 緑色
+
         } catch (PDOException $e) {
             $message = "エラーが発生しました: " . $e->getMessage();
-            $alertClass = "alert-danger"; // 赤色
+            $alertClass = "alert-danger"; // Bootstrap: 赤色
         }
     } else {
         $message = "全ての項目を入力してください。";
-        $alertClass = "alert-warning"; // 黄色
+        $alertClass = "alert-warning"; // Bootstrap: 黄色
     }
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>授業登録 | 匿名口コミアプリ</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="class_register.css">
-</head>
-<body>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container">
     <div class="row justify-content-center">
@@ -87,12 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="course_name" class="form-label fw-bold text-secondary">授業名</label>
                             <input type="text" class="form-control" id="course_name" name="course_name" placeholder="例: 情報工学概論" required>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="prof_name" class="form-label fw-bold text-secondary">担当教授名</label>
                             <input type="text" class="form-control" id="prof_name" name="prof_name" placeholder="例: 山田 太郎" required>
                         </div>
-                        
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                 登録する
@@ -103,34 +83,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="text-center mt-4">
-                <a href="../index.php" class="text-decoration-none text-secondary">
-                    &larr; トップページへ戻る
+                <a href="../home.php" class="text-decoration-none text-secondary">
+                    &larr; メインメニューへ戻る
                 </a>
             </div>
-
 
             <div class="class-debug-area">
                 <h3>🔧 [Dev] DB登録済みデータ (最新10件)</h3>
                 <ul class="class-debug-list">
                 <?php
-                $sql_select = "SELECT * FROM courses ORDER BY course_id DESC LIMIT 10";
-                $stmt = $pdo->query($sql_select);
-                
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    echo "<li>";
-                    echo "ID:" . htmlspecialchars($row['course_id']) . " ";
-                    echo "<strong>" . htmlspecialchars($row['course_name']) . "</strong> ";
-                    echo '<span class="text-muted small">(' . htmlspecialchars($row['professor_name']) . ')</span>';
-                    echo "</li>";
+                // エラー回避のため try-catch で囲むのが安全ですが、開発中なのでそのままでもOK
+                try {
+                    $sql_select = "SELECT * FROM courses ORDER BY course_id DESC LIMIT 10";
+                    $stmt = $pdo->query($sql_select);
+
+                    if ($stmt) {
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            echo "<li>";
+                            echo "ID:" . htmlspecialchars($row['course_id']) . " ";
+                            echo "<strong>" . htmlspecialchars($row['course_name']) . "</strong> ";
+                            echo '<span class="text-muted small">(' . htmlspecialchars($row['professor_name']) . ')</span>';
+                            echo "</li>";
+                        }
+                    }
+                } catch (PDOException $e) {
+                    echo "<li>DB接続エラー: 表示できません</li>";
                 }
                 ?>
                 </ul>
             </div>
-            </div>
+
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-</body>
-</html>
+<?php
+// フッター読み込み
+require_once $root_path . 'includes/footer.php';
+?>

@@ -1,24 +1,22 @@
-@charset "UTF-8";
+/* css/class_register.css */
 
-/* class_register.css 
-  授業登録ページ専用の追加スタイル
-*/
-
+/* Bootstrapの上書きや調整 */
 body {
-    background-color: #f8f9fa; /* Bootstrap標準より少し明るいグレー */
-    padding-bottom: 50px;
+    background-color: #f8f9fa;
+    /* padding-bottom は footerがあるため不要になる場合もありますが、微調整として残します */
 }
 
 /* メインカードの調整 */
 .register-card {
     border: none;
     border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* ふんわりした影 */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
     transition: transform 0.3s ease;
+    background-color: #fff;
 }
 
 .register-card:hover {
-    transform: translateY(-2px); /* ホバー時に少し浮く演出 */
+    transform: translateY(-2px);
 }
 
 /* アイコンの装飾 */
@@ -36,20 +34,20 @@ body {
 }
 
 .form-control:focus {
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15); /* 青い光彩を調整 */
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
     border-color: #8bb9fe;
 }
 
-/* 開発者用エリア（本番で消す部分）のデザイン */
-/* 他のファイルと被らないように class-debug-area という名前に変更 */
+/* 開発者用エリア */
 .class-debug-area {
     margin-top: 60px;
-    background-color: #212529; /* ダークグレー */
+    background-color: #212529;
     color: #bdc3c7;
     padding: 20px;
     border-radius: 10px;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.85rem;
+    text-align: left; /* 左揃えを強制 */
 }
 
 .class-debug-area h3 {
@@ -74,5 +72,5 @@ body {
 }
 
 .class-debug-list li strong {
-    color: #ffc107; /* 黄色で強調 */
+    color: #ffc107;
 }
