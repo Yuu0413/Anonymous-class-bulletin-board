@@ -1,35 +1,43 @@
 <?php
+// ▼▼▼ エラー表示設定 ▼▼▼
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // 1. 設定と共通パーツ
 $root_path = '../';
-$page_title = '授業検索・ランキング';
+$page_title = '授業検索・一覧';
 $page_css = 'board_search.css';
 
 require_once $root_path . 'includes/header.php';
-require_once $root_path . 'includes/db.php'; // ★共通DB設定を使用
+require_once $root_path . 'includes/db.php';
 
 // 2. パラメータ取得
-$keyword = $_GET['q'] ?? '';
-$page = (int) ($_GET['page'] ?? 1);
-$perPage = 12; // カード表示なので12件くらいが見やすい
-$offset = ($page - 1) * $perPage;
-$rankBy = $_GET['rank_by'] ?? 'popular';
+$keyword = isset($_GET['q']) ? trim($_GET['q']) : '';
+$page    = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$perPage = 12;
+$offset  = ($page - 1) * $perPage;
 
-// 検索モード判定
+// ソート順は指定がなければ「人気順」をデフォルトにしますが、画面には「ランキング」と出しません
+$rankBy  = isset($_GET['rank_by']) ? $_GET['rank_by'] : 'popular';
+
+// 検索モードかどうかの判定
 $searchMode = !empty($keyword);
 
-// ページタイトルの決定
+// タイトルの決定（ランキング表記を廃止）
 if ($searchMode) {
-    $rankingTitle = '「' . htmlspecialchars($keyword) . '」の検索結果';
-} else if ($rankBy === 'newest') {
-    $rankingTitle = '新着授業ランキング';
+    $pageHeaderTitle = '「' . htmlspecialchars($keyword) . '」の検索結果';
 } else {
-    $rankingTitle = '人気授業ランキング';
-    $rankBy = 'popular'; // デフォルト
+    $pageHeaderTitle = '授業一覧'; // シンプルなタイトルに変更
 }
 
 // 3. SQLクエリ構築
+$courses = [];
+$totalCount = 0;
+$totalPages = 1;
+$error_msg = "";
+
 try {
-    // ベースクエリ
+    // ベースとなるSQL
     $baseQuery = "
         SELECT
             c.course_id,
@@ -45,27 +53,25 @@ try {
             reviews r ON c.course_id = r.course_id
     ";
 
-    // WHERE句
+    // 検索条件
     $whereClause = " WHERE 1=1 ";
     if ($searchMode) {
-        // PostgreSQL等での検索
         $whereClause .= " AND (c.course_name LIKE :keyword OR c.professor_name LIKE :keyword) ";
     }
 
-    // GROUP BY
+    // グループ化
     $groupByClause = " GROUP BY c.course_id, c.course_name, c.professor_name ";
 
-    // ORDER BY
+    // 並び替え (内部ロジックとしては人気順などでソートしておく)
     $orderByClause = " ORDER BY ";
-    if ($rankBy === 'newest' && !$searchMode) {
-        // 新着順: 最新投稿日時 > 登録ID順
+    if ($rankBy === 'newest') {
         $orderByClause .= " last_reviewed_at DESC NULLS LAST, c.course_id DESC ";
     } else {
-        // 人気順: 口コミ数 > 平均評価
+        // デフォルト: 口コミ数 > 平均評価
         $orderByClause .= " review_count DESC, avg_overall_rating DESC ";
     }
 
-    // カウント用クエリ実行
+    // --- (1) 件数カウント ---
     $countSql = "SELECT COUNT(*) FROM ( " . $baseQuery . $whereClause . $groupByClause . " ) AS sub";
     $countStmt = $pdo->prepare($countSql);
     if ($searchMode) {
@@ -74,8 +80,9 @@ try {
     $countStmt->execute();
     $totalCount = $countStmt->fetchColumn();
     $totalPages = ceil($totalCount / $perPage);
+    if ($totalPages < 1) $totalPages = 1;
 
-    // データ取得用クエリ実行
+    // --- (2) データ取得 ---
     $mainSql = $baseQuery . $whereClause . $groupByClause . $orderByClause . " LIMIT :limit OFFSET :offset";
     $stmt = $pdo->prepare($mainSql);
     if ($searchMode) {
@@ -90,14 +97,12 @@ try {
     $error_msg = "データ取得エラー: " . $e->getMessage();
 }
 
-// 星表示ヘルパー
+// ヘルパー関数
 function renderStars($rating) {
     $rating = round($rating);
     $stars = str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
     return '<span class="star">' . $stars . '</span>';
 }
-
-// ヘルパー関数: XSS対策
 function h($s) {
     return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 }
@@ -108,75 +113,54 @@ function h($s) {
 
 <div class="container py-5">
 
-    <!-- 検索フォーム -->
+    <!-- 検索フォームエリア -->
     <div class="search-container">
         <h2 class="h4 search-title">🔍 授業を探す</h2>
         <form action="" method="GET" class="row g-2">
-            <input type="hidden" name="rank_by" value="<?php echo h($rankBy); ?>">
             <div class="col-md-9">
                 <input type="text" name="q" class="form-control form-control-lg" 
-                        placeholder="授業名、先生の名前..." value="<?php echo h($keyword); ?>">
+                       placeholder="授業名、先生の名前..." value="<?php echo h($keyword); ?>">
             </div>
             <div class="col-md-3 d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">検索</button>
             </div>
         </form>
+        <?php if ($searchMode): ?>
+            <div class="mt-2 text-end">
+                <a href="board_search.php" class="text-decoration-none text-secondary small">× 検索条件をクリア</a>
+            </div>
+        <?php endif; ?>
     </div>
 
-    <!-- ランキング切り替えタブ（検索時以外に表示） -->
-    <?php if (!$searchMode): ?>
-        <div class="ranking-switch">
-            <a href="?rank_by=popular" class="<?php echo $rankBy === 'popular' ? 'active' : ''; ?>">
-                🔥 人気ランキング
-            </a>
-            <a href="?rank_by=newest" class="<?php echo $rankBy === 'newest' ? 'active' : ''; ?>">
-                ✨ 新着の口コミ
-            </a>
-        </div>
-    <?php endif; ?>
-
-    <!-- タイトルと件数 -->
+    <!-- 結果件数表示 -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h5 fw-bold text-secondary mb-0"><?php echo h($rankingTitle); ?></h3>
+        <h3 class="h5 fw-bold text-secondary mb-0"><?php echo h($pageHeaderTitle); ?></h3>
         <span class="badge bg-light text-dark border">
             全 <?php echo number_format($totalCount); ?> 件
         </span>
     </div>
 
-    <?php if (isset($error_msg)): ?>
+    <?php if ($error_msg): ?>
         <div class="alert alert-danger"><?php echo h($error_msg); ?></div>
     <?php elseif (empty($results)): ?>
         <div class="text-center py-5 text-muted">
-            <p class="fs-5">該当する授業が見つかりませんでした。</p>
+            <p class="fs-5">該当する授業が見つかりませんでした 😢</p>
+            <p>キーワードを変えて検索するか、新しく登録してください。</p>
             <a href="../class/class_register.php" class="btn btn-success mt-2">授業を新しく登録する</a>
         </div>
     <?php else: ?>
 
         <!-- カード一覧表示エリア -->
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            <?php foreach ($results as $i => $row):
-                $rank = $offset + $i + 1;
-                // 順位バッジの色クラス
-                $rankClass = '';
-                if (!$searchMode && $rankBy === 'popular') {
-                    if ($rank === 1) $rankClass = 'rank-1';
-                    elseif ($rank === 2) $rankClass = 'rank-2';
-                    elseif ($rank === 3) $rankClass = 'rank-3';
-                }
-            ?>
+            <?php foreach ($results as $i => $row): ?>
             <div class="col">
                 <div class="course-card">
-                    <?php if ($rankClass): ?>
-                        <div class="rank-badge <?php echo $rankClass; ?>"><?php echo $rank; ?>位</div>
-                    <?php elseif ($searchMode): ?>
-                        <!-- 検索時はNo.を表示 -->
-                        <div class="rank-badge bg-light text-secondary border">No.<?php echo $rank; ?></div>
-                    <?php endif; ?>
-
+                    <!-- ランキングバッジ（金銀銅）の表示ロジックを削除しました -->
+                    
                     <div>
                         <h4 class="course-title text-truncate"><?php echo h($row['course_name']); ?></h4>
                         <p class="prof-name">👨‍🏫 <?php echo h($row['professor_name']); ?></p>
-
+                        
                         <div class="rating-box">
                             <div class="rating-row">
                                 <span>総合評価</span>
@@ -196,7 +180,7 @@ function h($s) {
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div class="review-meta">
                             口コミ <?php echo number_format($row['review_count']); ?> 件
                             <br>
@@ -206,8 +190,8 @@ function h($s) {
 
                     <div class="mt-3">
                         <a href="../class/class_detail.php?course_id=<?php echo h($row['course_id']); ?>" 
-                            class="btn btn-outline-primary btn-detail stretched-link">
-                            詳細を見る
+                           class="btn btn-outline-primary btn-detail stretched-link">
+                           詳細を見る
                         </a>
                     </div>
                 </div>
@@ -219,30 +203,25 @@ function h($s) {
         <?php if ($totalPages > 1): ?>
             <nav>
                 <ul class="pagination">
-                    <!-- 前へ -->
                     <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?q=<?php echo h($keyword); ?>&rank_by=<?php echo h($rankBy); ?>&page=<?php echo $page - 1; ?>">«</a>
+                        <a class="page-link" href="?q=<?php echo h($keyword); ?>&page=<?php echo $page - 1; ?>">«</a>
                     </li>
-
-                    <!-- ページ番号 -->
                     <?php for ($p = 1; $p <= $totalPages; $p++): ?>
                         <li class="page-item <?php echo ($page === $p) ? 'active' : ''; ?>">
-                            <a class="page-link" href="?q=<?php echo h($keyword); ?>&rank_by=<?php echo h($rankBy); ?>&page=<?php echo $p; ?>">
+                            <a class="page-link" href="?q=<?php echo h($keyword); ?>&page=<?php echo $p; ?>">
                                 <?php echo $p; ?>
                             </a>
                         </li>
                     <?php endfor; ?>
-
-                    <!-- 次へ -->
                     <li class="page-item <?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?q=<?php echo h($keyword); ?>&rank_by=<?php echo h($rankBy); ?>&page=<?php echo $page + 1; ?>">»</a>
+                        <a class="page-link" href="?q=<?php echo h($keyword); ?>&page=<?php echo $page + 1; ?>">»</a>
                     </li>
                 </ul>
             </nav>
         <?php endif; ?>
 
     <?php endif; ?>
-
+    
     <div class="text-center mt-5">
         <a href="../home.php" class="text-secondary text-decoration-none">
             &larr; メインメニューへ戻る
